@@ -1,0 +1,164 @@
+﻿@page "/cart"
+@using Tangy_Common
+
+@inject ILocalStorageService _localStorage
+@inject IProductService _productService
+@inject ICartService _cartService
+
+
+@if (IsProcessing)
+{
+
+
+    <div style="position:fixed;top:50%;left:50%;margin-top:-50px;margin-left:-100px;">
+        <img src="images/ajax-loader.gif" />
+    </div>
+}
+else
+{
+
+    <div class="container mt-4">
+        <div class="card">
+            <div class="card-header bg-dark text-light ml-0 ">
+                <div class="row">
+                    <div class="col-6  pt-2">
+                        Shopping Cart
+                    </div>
+                    <div class="col-6 col-md-3 offset-md-3 text-end">
+                        <a href="/" class="btn btn-outline-info form-control">Continue Shopping</a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                @foreach (var cartItem in ShoppingCartItems)
+                {
+                    <div class="row">
+                        <div class="col-3 col-md-1 text-center py-2">
+                            <img src="@cartItem.Product.ImageUrl" class="rounded" width="100%" />
+                        </div>
+                        <div class="col-9 text-sm-center text-md-start col-md-4 pt-lg-1 ">
+                            <h4><strong>@cartItem.Product.Name</strong></h4>
+
+                            <div class="badge bg-primary text-center" style="font-size:12px;">
+                                @cartItem.Product.Category.Name
+                            </div>
+                            <div class="badge bg-info text-center" style="font-size:12px;">
+                                @cartItem.Product.Color
+                            </div>
+                            <div><p>Size : @cartItem.ProductPrice.Size</p></div>
+                        </div>
+                        <div class="col-12 text-sm-center col-md-7 text-md-start row  pt-lg-3 mt-3">
+                            <div class="col-4 pt-1 ">
+
+                                <h6><strong>@cartItem.ProductPrice.Price <span class="text-muted">x</span>@cartItem.Count </strong></h6>
+                            </div>
+                            <div class="col-6 col-sm-4 col-lg-6">
+                                <button @onclick="(args)=>Increment(cartItem.ProductId, cartItem.ProductPriceId)" type="submit" class="btn btn-primary">
+                                    <i class="bi bi-plus-square"></i>
+                                </button>
+                                <button @onclick="(args)=>Decrement(cartItem.ProductId, cartItem.ProductPriceId)" type="submit" class="btn btn-warning">
+                                    <i class="bi bi-dash-square"></i>
+                                </button>
+                            </div>
+                            <div class="col-2 col-sm-4 col-lg-2 text-right">
+                                <button @onclick="(args)=>Remove(cartItem.ProductId, cartItem.ProductPriceId)" type="submit" class="btn btn-outline-danger">
+                                    <i class="bi bi-trash-fill"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr />
+                }
+                <div class="row">
+                    <div class="col-12 col-md-5">
+                    </div>
+                    <div class="col-12 col-md-6 offset-md-1 col-lg-4 offset-lg-3 pr-4">
+                        <ul class="list-group">
+                            <li class="list-group-item d-flex justify-content-between bg-light">
+                                <span class="text-info"> Total (USD)</span>
+                                <strong class="text-info">@Total</strong>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+            <div class="card-footer">
+                <div class="col-12  col-md-3 offset-md-9">
+                    <a href="/summary" class="btn btn-secondary form-control">Summary</a>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+@code {
+    public bool IsProcessing { get; set; } = false;
+    private List<ShoppingCart> ShoppingCartItems { get; set; } = new List<ShoppingCart>();
+
+    private double Total { get; set; } = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        IsProcessing = true;
+        await ReloadCart();
+        IsProcessing = false;
+    }
+
+    private async Task ReloadCart()
+    {
+        ShoppingCartItems = await _cartService.GetCart();
+        Total = ShoppingCartItems.Sum(p => p.Count * p.ProductPrice.Price);
+
+    }
+    private async Task Increment(int productId, int productPriceId)
+    {
+        IsProcessing = true;
+
+        var cartItem = new ShoppingCart()
+            {
+                Count = 1,
+                ProductPriceId = productPriceId,
+                ProductId = productId
+            };
+        await _cartService.IncrementCart(cartItem);
+
+        await ReloadCart();
+        IsProcessing = false;
+
+    }
+
+    private async Task Decrement(int productId, int productPriceId)
+    {
+        IsProcessing = true;
+
+        var cartItem = new ShoppingCart()
+            {
+                Count = 1,
+                ProductPriceId = productPriceId,
+                ProductId = productId
+            };
+        await _cartService.DecrementCart(cartItem);
+
+        await ReloadCart();
+        IsProcessing = false;
+
+    }
+
+    private async Task Remove(int productId, int productPriceId)
+    {
+        IsProcessing = true;
+
+        var cartItem = new ShoppingCart()
+            {
+                Count = 0,
+                ProductPriceId = productPriceId,
+                ProductId = productId
+            };
+        await _cartService.RemoveCart(cartItem);
+        await ReloadCart();
+
+        IsProcessing = false;
+
+    }
+}

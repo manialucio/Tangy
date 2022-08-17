@@ -1,0 +1,30 @@
+﻿@page "/learnBlazor/parentComponent"
+
+<h3>ParentComponent </h3>
+<CascadingValue Name="message" Value="@MessageForGrandChild">
+    <CascadingValue Name="luckyNumber" Value=@LuckyNumberForGrandChild>
+        <_ChildComponent @ref="childComp" Title="this title is passed as parameter to child" OnButtonClick="ShowMessage">
+            <ChildContent>
+                Render fragment from Parent!
+                <span>@MessageText</span>
+            </ChildContent>
+            <DangerChildContent>Render Danger Fragement from Parent!</DangerChildContent>
+        </_ChildComponent>
+    </CascadingValue>
+</CascadingValue>
+
+<_AnotherChildComponent placeholder="enter your name (parent)" maxLength=10></_AnotherChildComponent>
+<button class="btn btn-success"  type="button" @onclick='()=>childComp.DoAlert("urca")' >test</button>
+
+@code {
+    public string MessageText = string.Empty;
+    public string MessageForGrandChild = "This message is from your parent (ParentComponent)";
+    public int LuckyNumberForGrandChild { get; set; } = 5;
+    public _ChildComponent childComp;
+
+    private void ShowMessage()
+    {
+        MessageText = "Tangy button clicked from Child Componente";
+    }
+
+}

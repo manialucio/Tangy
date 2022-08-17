@@ -1,0 +1,140 @@
+﻿@page "/product/price/{Id:int}"
+@inject IProductPriceRepository _productPriceRepository
+@inject IProductRepository _productRepository
+@inject IJSRuntime _jsRuntime
+
+<h3 class="card-title text-primary mb-3 ml-3">Price</h3>
+
+@if (IsLoading)
+{
+    //  loading gif
+    <div class="text-center">
+        <img src="/images/loading.gif" />
+    </div>
+}
+else
+{
+    <div class="row border p-2 mb-4">
+        <div class="col-11">
+            <div class="card-body">
+                <h4>@Product.Name</h4>
+                <span>Category: @Product.Category.Name</span> <br />
+                <span>Description: @((MarkupString)Product.Description)</span>
+            </div>
+        </div>
+        <div class="col-1">
+            <img src="@Product.ImageUrl" class="w-100">
+        </div>
+        <div class="col-12">
+            <SfGrid @ref="@DataGrid" DataSource="@ProductPrices" TValue="ProductPriceDto" ID="Grid1" 
+                AllowPdfExport="true" AllowSelection="true" Toolbar="@(new List<string>() {"Add", "Edit", "Delete", "Cancel", "Update","PdfExport"})">
+                <GridEditSettings AllowAdding="true" AllowEditing="true" AllowDeleting="true" Mode="Syncfusion.Blazor.Grids.EditMode.Normal"></GridEditSettings>
+                <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.FilterBar"></GridFilterSettings>
+                <GridSelectionSettings Type="Syncfusion.Blazor.Grids.SelectionType.Multiple"></GridSelectionSettings>
+                <GridEvents OnToolbarClick="@GridToolbarClick" TValue="ProductPriceDto" OnActionBegin="ActionBeginHandler"></GridEvents>
+                <GridColumns>
+                    <GridColumn Field=@nameof(ProductPriceDto.Id) HeaderText="Id" IsPrimaryKey="true"  Width="150"  AllowAdding="false" ></GridColumn>
+                    <GridColumn Field=@nameof(ProductPriceDto.Size) HeaderText="Size" AllowEditing="true" Width="150">
+                        <EditTemplate>
+                            <Syncfusion.Blazor.DropDowns.SfDropDownList DataSource="@Sizes" TItem="string" TValue="string" @bind-Value="(context as ProductPriceDto).Size"></Syncfusion.Blazor.DropDowns.SfDropDownList>
+                        </EditTemplate>
+
+                    </GridColumn>
+                    <GridColumn Field=@nameof(ProductPriceDto.Price) HeaderText="Price" AllowEditing="true" Width="150"></GridColumn>
+                </GridColumns>
+            </SfGrid>
+
+        </div>
+    </div>
+}
+
+
+
+@code {
+    SfGrid<ProductPriceDto> DataGrid { get; set; }
+    /// <summary>
+    /// Event for Toolbar click for Grid Exporting
+    /// </summary>
+    public void GridToolbarClick(Syncfusion.Blazor.Navigations.ClickEventArgs args)
+    {
+        if (args.Item.Id == "Grid1_pdfexport")
+        {
+            this.DataGrid.ExportToPdfAsync();
+        }
+
+    }
+    public async Task ActionBeginHandler(ActionEventArgs<ProductPriceDto> args)
+    {
+        if (args.RequestType.Equals(Syncfusion.Blazor.Grids.Action.Delete))
+        {
+            IsLoading = true;
+            await _productPriceRepository.Delete((args.Data as ProductPriceDto).Id);
+            ProductPrices = await _productPriceRepository.GetAll(Id);
+            IsLoading = false;
+            await _jsRuntime.ToasterSucces("delete Ok");
+
+        }
+        else if (args.RequestType.Equals(Syncfusion.Blazor.Grids.Action.Add))
+        {
+            ProductPrices.Append(new ProductPriceDto()
+                {
+                    ProductId = Id
+                });
+        }
+        else if (args.RequestType.Equals(Syncfusion.Blazor.Grids.Action.Save))
+        {
+            IsLoading = true;
+            var prodPrice = args.Data as ProductPriceDto;
+            string message = string.Empty;
+            if (prodPrice.Id == 0)
+            {
+                prodPrice.ProductId = Id;
+                await _productPriceRepository.Create(prodPrice);
+                message = "create ok";
+            }
+            else
+            {
+                await _productPriceRepository.Update(args.Data as ProductPriceDto);
+                message = "update ok";
+
+            }
+            ProductPrices = await _productPriceRepository.GetAll(Id);
+            await _jsRuntime.ToasterSucces("create Ok");
+            IsLoading = false;
+        }
+
+    }
+    public async Task ActionEndHandler(ActionEventArgs<ProductPriceDto> args)
+    {
+        IsLoading = false;
+        ProductPrices = await _productPriceRepository.GetAll(Id);
+        await _jsRuntime.ToasterSucces("create Ok");
+
+    }
+
+
+
+    [Parameter]
+    public int Id { get; set; }
+
+    private ProductDto Product { get; set; } = new();
+    private IEnumerable<ProductPriceDto> ProductPrices { get; set; } = new List<ProductPriceDto>();
+    private bool IsLoading { get; set; } = true;
+    private List<string> Sizes { get; } = new List<string>()
+    {
+        "s", "m", "l", "xx"
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            IsLoading = true;
+            StateHasChanged();
+            Product = await _productRepository.Get(Id);
+            ProductPrices = await _productPriceRepository.GetAll(Id);
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+}

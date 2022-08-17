@@ -1,0 +1,60 @@
+﻿<div class="col-5 border p-2" @onclick="(args)=>ProductSelected(args, Product.Name)">
+    <h3 class="text-primary ">Product Summary</h3>
+    <input type="checkbox"  @onchange="FavouriteUpdated"  /> Add to favorites <br/><br />
+    Name - @Product.Name<br />
+    <p>RF from parent - @FirstFragment @SecondFragment</p>
+    <div>
+        IsActive <input type="checkbox" @bind-value="@Product.IsActive" checked="@(Product.IsActive?"checked":null)" /><br />
+    </div>
+    <div>
+        Price: <input type="number" @bind-value="@Product.Price" @bind-value:event="oninput" /><br />
+    </div>
+    <div>
+        Price: <input type="number" @bind="@Product.Price" @bind:event="oninput" /><br />
+    </div>
+
+    <div>
+        @if (Product.IsActive)
+        {
+            <div>
+                Product Properties:
+                <div>
+                    @foreach (var prop in Product.ProductProperties)
+                    {
+                        <p>@prop.Key - @prop.Value </p>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+    <br />
+    <_EditDeleteButton IsActive="@Product.IsActive" />
+</div>
+
+@code {
+    //parametri semplici
+    [Parameter]
+    public Demo_Product Product { get; set; }
+
+    // eventi pubblici
+    [Parameter]
+    public EventCallback<bool> OnFavouriteSelectionChanged { get; set; }
+    private async Task FavouriteUpdated(ChangeEventArgs e)
+    {
+        await OnFavouriteSelectionChanged.InvokeAsync((bool)e.Value);
+    }
+    [Parameter]
+    public EventCallback<string> OnProductSelected { get; set; }
+    private async Task ProductSelected(MouseEventArgs e,string name)
+    {
+        await OnProductSelected.InvokeAsync(name);
+    }
+
+    // fragment pubblici
+    [Parameter]
+    public RenderFragment FirstFragment { get; set; }
+
+    [Parameter]
+    public RenderFragment SecondFragment { get; set; }
+
+}

@@ -1,0 +1,121 @@
+﻿@page "/product"
+@inject IProductRepository _productRepository
+@inject IJSRuntime _jsRuntime
+@inject IFileUploadService _fileUploadService
+
+<_DeleteConfirmation OnConfirmClicked="ConfirmDelete_Click" IsParentComponentProcessing="IsLoading"></_DeleteConfirmation>
+<div class="row mt-4">
+    <div class="col-6">
+        <h4 class="card-title text-primary">Product List</h4>
+    </div>
+    <div class="col-4 offset-2">
+        <a href="product/create" class="btn btn-info form-control">Add new Product</a>
+    </div>
+    <div class="col-12 py-2">
+        @if (Products.Any())
+        {
+
+
+        <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>ShopFavorites</th>
+                        <th>CustomerFavorites</th>
+                        <th>Category</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var prod in Products)
+                    {
+                        <tr>
+                            <td>
+                                @prod.Name
+                            </td>
+                            <td>
+                                <input type="checkbox" disabled checked="@prod.ShopFavorites">
+                            </td>
+                            <td>
+                                <input type="checkbox" disabled checked="@prod.CustomerFavorites">
+                            </td>
+                            <td>
+                                @prod.Category.Name
+                            </td>
+                            <td>
+                                <NavLink href="@($"product/edit/{prod.Id}")" class="btn btn-primary">Edit</NavLink>
+                                <NavLink href="@($"/product/price/{prod.Id}")" class="btn btn-success">Price</NavLink>
+                                <NavLink @onclick="()=>HandleDelete(prod.Id)" class="btn btn-danger">Delete</NavLink>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+
+            </table>
+        }
+        else
+        {
+            if (IsLoading)
+            {
+                //  loading gif
+                <div class="text-center">
+                    <img src="/images/loading.gif" />
+                </div>
+            }
+            else
+            {
+                // no record
+                <p>No prod found</p>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    private IEnumerable<ProductDto> Products { get; set; } = new List<ProductDto>();
+    public bool IsLoading { get; set; } = true;
+    private int ProductToDeleteId { get; set; } = 0;
+   
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadProducts();
+        }
+    }
+
+
+    private async Task LoadProducts()
+    {
+        IsLoading = true;
+        StateHasChanged();
+        Products = await _productRepository.GetAll();
+        IsLoading = false;
+        StateHasChanged();
+
+    }
+    private void HandleDelete(int id)
+    {
+        ProductToDeleteId = id;
+        _jsRuntime.InvokeVoidAsync("ShowDeleteConfirmationModal");
+    }
+
+    public async Task ConfirmDelete_Click(bool isConfirmed)
+    {
+        IsLoading = true;
+        if (isConfirmed && ProductToDeleteId != 0)
+        {
+            ProductDto prod = await _productRepository.Get(ProductToDeleteId);
+            if (!prod.IsDefaultImage)
+            {
+                _fileUploadService.DeleteFile(prod.ImageUrl);
+            }
+            await _productRepository.Delete(ProductToDeleteId);
+            await _jsRuntime.ToasterSucces("cancellato");
+            await LoadProducts();
+            await _jsRuntime.InvokeVoidAsync("HideDeleteConfirmationModal");
+        }
+        IsLoading = false;
+    }
+}

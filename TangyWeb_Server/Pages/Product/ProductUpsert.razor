@@ -1,0 +1,220 @@
+﻿@page "/product/create"
+@page "/product/edit/{id:int}"
+
+@using Syncfusion.Blazor.RichTextEditor
+
+
+@inject IProductRepository _productRepository
+@inject ICategoryRepository _categoryRepository
+@inject NavigationManager _navigationManager
+@inject IFileUploadService _fileUploadService
+@inject IJSRuntime _jsRuntime
+
+<div class="row my-2">
+    <h3 class="card-title text-primary mb-3 ml-3">@Title</h3>
+    <div class="col-md-10">
+        @if (IsLoading)
+        {
+            //  loading gif
+            <div class="text-center">
+                <img src="/images/loading.gif" />
+            </div>
+        }
+        else
+        {
+            <EditForm Model="Product" OnValidSubmit="UpsertProduct">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+                <div class="form-group">
+                    <label>Name</label>
+                    <InputText @bind-Value="Product.Name" class="form-control"></InputText>
+                    <ValidationMessage For="()=>Product.Name"></ValidationMessage>
+                </div>
+                <div class="form-group">
+                    <label>Color</label>
+                    <InputText @bind-Value="Product.Color" class="form-control"></InputText>
+                    <ValidationMessage For="()=>Product.Color"></ValidationMessage>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <SfRichTextEditor  EnableResize="true" @bind-Value="Product.Description">
+                    </SfRichTextEditor>
+    
+                    <ValidationMessage For="()=>Product.Description"></ValidationMessage>
+
+
+                    <InputTextArea @bind-Value="Product.Description" class="form-control"></InputTextArea>
+                </div>
+
+                <div class="row pt-3">
+                    <div class="form-inline">
+                        <div class="form-group">
+                            <InputCheckbox @bind-Value="Product.ShopFavorites" class="form-check-input"></InputCheckbox>
+                            <label class="form-check-label">Is Shop Favorites</label>
+                        </div>
+                        <div class="form-group">
+                            <InputCheckbox @bind-Value="Product.CustomerFavorites" class="form-check-input"></InputCheckbox>
+                            <label class="form-check-label">Is Customer Favorites</label>
+                        </div>
+                        <div class="form-group">
+                            <InputFile OnChange="HandleImageUpload" />
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-check-label">Category</label>
+                    <InputSelect @bind-Value="Product.CategoryId" class="form-select">
+                        <option value="0" disabled="disabled" selected>-- Select Category --   </option>
+                        @foreach (var c in Categories)
+                        {
+                        <option value="@c.Id">@c.Name</option>
+                        }
+                </InputSelect>
+                <ValidationMessage For="()=>Product.CategoryId"></ValidationMessage>
+            </div>
+
+
+            <div class="btn-group pt-3">
+                <button class="btn btn-primary">@Title</button>
+                <NavLink href="product" class="btn btn-secondary">Back to index</NavLink>
+            </div>
+
+        </EditForm>
+        }
+
+    </div>
+    <div class="col-md-2">
+        <img src="@Product.ImageUrl" class="w-100" />
+    </div>
+</div>
+@code {
+    private List<ToolbarItemModel> ToolbarCommands = new List<ToolbarItemModel>()
+    {
+        new ToolbarItemModel() { Command = ToolbarCommand.Bold },
+        new ToolbarItemModel() { Command = ToolbarCommand.Italic },
+        new ToolbarItemModel() { Command = ToolbarCommand.StrikeThrough },
+        new ToolbarItemModel() { Command = ToolbarCommand.Separator },
+        new ToolbarItemModel() { Command = ToolbarCommand.Formats },
+        new ToolbarItemModel() { Command = ToolbarCommand.OrderedList },
+        new ToolbarItemModel() { Command = ToolbarCommand.UnorderedList },
+        new ToolbarItemModel() { Command = ToolbarCommand.Separator },
+        new ToolbarItemModel() { Command = ToolbarCommand.CreateLink },
+        new ToolbarItemModel() { Command = ToolbarCommand.Image },
+        new ToolbarItemModel() { Command = ToolbarCommand.CreateTable },
+        new ToolbarItemModel() { Command = ToolbarCommand.Separator },
+        new ToolbarItemModel() { Command = ToolbarCommand.Undo },
+        new ToolbarItemModel() { Command = ToolbarCommand.Redo },
+        new ToolbarItemModel() { Command = ToolbarCommand.SourceCode }
+
+    };
+
+    [Parameter]
+    public int Id { get; set; }
+
+    public bool IsLoading { get; set; }
+    private string Title { get; set; } = "Create";
+    public string OldImageUrl { get; set; } = string.Empty;
+
+    private IEnumerable<CategoryDto> Categories { get; set; } = new List<CategoryDto>();
+    private ProductDto Product { get; set; } = new ProductDto()
+        {
+            ImageUrl = "/images/default.png"
+        };
+
+    protected override async Task OnInitializedAsync()
+    {
+        Categories = await _categoryRepository.GetAll();
+
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            StateHasChanged();
+
+            if (Id == 0)
+            {
+                IsLoading = false;
+            }
+            else
+            {
+                await LoadProduct();
+
+            }
+
+        }
+        IsLoading = false;
+
+    }
+    private async Task LoadProduct()
+    {
+        IsLoading = true;
+        if (Id > 0)
+        {
+            Title = "Save edited";
+            Product = await _productRepository.Get(Id);
+            OldImageUrl = Product.ImageUrl;
+        }
+        StateHasChanged();
+    }
+    private async Task UpsertProduct()
+    {
+        if (Id == 0)
+        {
+            await _productRepository.Create(Product);
+            await _jsRuntime.ToasterSucces("create Ok");
+
+        }
+        else
+        {
+            await _productRepository.Update(Product);
+            if (OldImageUrl != Product.ImageUrl)
+            {
+                try
+                {
+                    _fileUploadService.DeleteFile(OldImageUrl);
+                }
+                catch
+                { }
+            }
+            await _jsRuntime.ToasterSucces("Ok");
+        }
+        _navigationManager.NavigateTo("/product");
+    }
+
+    private async Task HandleImageUpload(InputFileChangeEventArgs e)
+    {
+        IsLoading = true;
+        try
+        {
+            if (e.GetMultipleFiles().Count > 0)
+            {
+
+                var validExtension = new string[] { ".jpg", ".png", ".jpeg" };
+                foreach (var file in e.GetMultipleFiles())
+                {
+                    var fileInfo = new FileInfo(file.Name);
+                    if (validExtension.Contains(fileInfo.Extension.ToLower()))
+                    {
+                        Product.ImageUrl = await _fileUploadService.UploadFile(file);
+                    }
+                    else
+                    {
+                        await _jsRuntime.ToasterFail("no image scemo");
+                        return;
+                    }
+
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await _jsRuntime.ToasterFail("Error:" + ex.Message);
+
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+}

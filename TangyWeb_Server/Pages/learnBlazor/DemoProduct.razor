@@ -1,0 +1,65 @@
+﻿@page "/learnBlazor/demoproduct"
+<h2 class="text-success">Individual Product</h2>
+
+<p>Favourites Total: @SelectedFavouriteCount</p> <br />
+<p>Selected Product: @SelectedProductName</p> <br />
+
+<div class="row">
+    @foreach (var product in Products)
+    {
+        <_ProductComponent Product="@product" OnFavouriteSelectionChanged="UpdateFavouriteCount" OnProductSelected="DisplaySelectedProduct">
+            <FirstFragment>#1</FirstFragment>
+            <SecondFragment>#2</SecondFragment>
+        </_ProductComponent>
+
+    }
+</div>
+@code {
+    private string selectedProp = "";
+
+    List<Demo_Product> Products = new();
+
+    private int SelectedFavouriteCount { get; set; } = 0;
+    protected void UpdateFavouriteCount(bool selected)
+    {
+        SelectedFavouriteCount  += selected ? 1 : -1;
+    }
+
+    private string SelectedProductName { get; set; } = string.Empty;
+    protected void DisplaySelectedProduct(string productName)
+    {
+        SelectedProductName = productName;
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Products.Add(new()
+            {
+                Id = 1,
+                Name = "Midnight Blaze",
+                IsActive = false,
+                Price = 10,
+                ProductProperties = new List<Demo_ProductProp>
+    {
+    new Demo_ProductProp { Id = 1, Key = "Flavor", Value = "Rose"},
+    new Demo_ProductProp { Id = 2, Key = "Size", Value = "20oz"},
+    new Demo_ProductProp { Id = 3, Key = "Color", Value="Purple" }
+    }
+            });
+
+        Products.Add(new()
+            {
+                Id = 2,
+                Name = "Blossom Lily",
+                IsActive = true,
+                Price = 11,
+                ProductProperties = new List<Demo_ProductProp>
+    {
+    new Demo_ProductProp { Id = 1, Key = "Flavor", Value = "Lily" },
+    new Demo_ProductProp { Id = 2, Key = "Size", Value = "18oz" },
+    new Demo_ProductProp { Id = 3,Key = "Color",Value = "White"}
+    }
+            });
+    }
+    }

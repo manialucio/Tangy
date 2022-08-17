@@ -1,0 +1,49 @@
+﻿@page "/learnBlazor/blazorJs"
+@inject IJSRuntime _JsRunTime
+
+<h3>BlazorJs</h3>
+<div class="row">
+    <button class="btn btn-secondary" @onclick="TestConfirmBox">Test confirm Button</button>
+</div>
+<div class="row">
+    <button class="btn btn-success" @onclick="ToastrSuccess">Toastr ok</button>
+    <button class="btn btn-danger" @onclick="ToastrFail">Toastr ko </button>
+    <button class="btn btn-success" @onclick="SweetAlert2Success">swa2 ok</button>
+    <button class="btn btn-danger" @onclick="SweetAlert2Fail">swa2 ko </button>
+
+</div>
+
+
+<div class="row">
+    <p>@(ConfirmResult?"ok":"ko")</p>
+</div>
+
+@code {
+
+    private string ConfirmMessage = "Are you sure yyou want to click?";
+
+    private bool ConfirmResult { get; set; }
+    private async Task TestConfirmBox()
+    {
+        ConfirmResult = await _JsRunTime.InvokeAsync<bool>("confirm", ConfirmMessage);
+    }
+
+    private async Task ToastrSuccess()
+    {
+        //        await _JsRunTime.InvokeVoidAsync("ShowToastr","success","Molto beene");
+        await _JsRunTime.ToasterSucces("Molto bene");
+    }
+    private async Task ToastrFail()
+    {
+        //       await _JsRunTime.InvokeVoidAsync("ShowToastr", "error","Acccipicchia");
+        await _JsRunTime.ToasterFail("Accipicchia");
+    }
+    private async Task SweetAlert2Success()
+    {
+        await _JsRunTime.SweetAlert2Success("thats good");
+    }
+    private async Task SweetAlert2Fail()
+    {
+        await _JsRunTime.SweetAlert2Failure("ohhh noooo!");
+    }
+}

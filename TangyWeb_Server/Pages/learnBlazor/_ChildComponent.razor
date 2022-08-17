@@ -1,0 +1,41 @@
+﻿@inject  IJSRuntime _JsRunTime
+
+<h3>_ChildComponent</h3>
+<div>
+    <div class="alert alert-info">@Title</div>
+    <div class="alert alert-success">
+        @if (ChildContent!= null)
+        {
+            <span>@ChildContent</span>
+        }
+         @if (DangerChildContent!= null)
+        {
+            <span>@DangerChildContent</span>
+        }
+    </div>
+    <button class="btn btn-danger" @onclick="OnButtonClick">Button to be clicked</button>
+@*    <_GrandChildComponent MessageForGrandChild="@MessageForGrandChild"></_GrandChildComponent>*@
+<_GrandChildComponent></_GrandChildComponent>
+</div>
+@code {
+    [Parameter]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    [Parameter]
+    public RenderFragment DangerChildContent { get; set; }
+
+
+    [Parameter]
+    public EventCallback OnButtonClick { get; set; }
+
+    //[Parameter]
+    //public string MessageForGrandChild { get; set; }
+
+    public async void DoAlert(string message)
+    {
+       await _JsRunTime.SweetAlert2Success(message);
+    }
+}

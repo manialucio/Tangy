@@ -1,0 +1,54 @@
+﻿<h3>Life Cycle component</h3>
+
+<hr />
+@foreach (var item in EventType)
+{
+    @item
+    <hr />
+}
+
+@code {
+    List<string> EventType = new List<string>();
+
+    protected override void OnInitialized()
+    {
+        //base.OnInitialized();
+        EventType.Add($"CHILD On Initialized called - {Id}");
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        EventType.Add($"CHILD  On Initialized Async called - {Id}");
+        //await base.OnInitializedAsync();
+
+    }
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        EventType.Add($"CHILD OnParametersSet called - {Id}");
+    }
+    protected override Task OnParametersSetAsync()
+    {
+        EventType.Add($"CHILD OnParametersSetAsync called - {Id}");
+        return base.OnParametersSetAsync();
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        base.OnAfterRender(firstRender);
+        EventType.Add($"CHILD OnAfterRenderOn CALLED - {Id}");
+    }
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        EventType.Add($"CHILD OnAfterRenderAsync CALLED - {Id}");
+
+        return base.OnAfterRenderAsync(firstRender);
+    }
+
+    [Parameter]
+    public int CountValue { get; set; }
+
+    [Parameter]
+    public string Id { get; set; }
+}
