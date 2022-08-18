@@ -19,7 +19,7 @@ builder.Services.AddSyncfusionBlazor();
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
+builder.Services.AddIdentity<IdentityUser,IdentityRole>().AddDefaultTokenProviders().AddDefaultUI() 
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
 // external libraries
@@ -28,7 +28,8 @@ builder.Services.AddSyncfusionBlazor();
 
 // application services
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
-builder.Services.AddScoped<IProductPriceRepository, ProductPriceRepository>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<IDbInitializer, DbInitializer>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IFileUploadService, FileUploadService>();
 
@@ -46,11 +47,21 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseStaticFiles();
 app.UseRouting();
-app.MapBlazorHub();
-app.MapFallbackToPage("/_Host");
+
 app.UseAuthentication();
 app.UseAuthorization();
+SeedDatabase();
+app.MapBlazorHub();
+app.MapFallbackToPage("/_Host");
 app.Run();
+
+void SeedDatabase()
+{
+    using (var scope= app.Services.CreateScope())
+    {
+        var dbInitializer = scope.ServiceProvider.GetRequiredService<IDbInitializer>();
+        dbInitializer.Initialize();
+    }
+}

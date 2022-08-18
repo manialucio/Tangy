@@ -12,12 +12,12 @@ using Microsoft.Extensions.Logging;
 
 namespace TangyWeb_Server.Areas.Identity.Pages.Account
 {
-    public class LogoutModel : PageModel
+    public class LogoutModel_old : PageModel
     {
         private readonly SignInManager<IdentityUser> _signInManager;
-        private readonly ILogger<LogoutModel> _logger;
+        private readonly ILogger<LogoutModel_old> _logger;
 
-        public LogoutModel(SignInManager<IdentityUser> signInManager, ILogger<LogoutModel> logger)
+        public LogoutModel_old(SignInManager<IdentityUser> signInManager, ILogger<LogoutModel_old> logger)
         {
             _signInManager = signInManager;
             _logger = logger;
