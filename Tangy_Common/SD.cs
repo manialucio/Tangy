@@ -24,5 +24,16 @@ namespace Tangy_Common
             public const string Admin = "Admin";
             public const string Customer = "Customer";
         }
+
+        public static class Auth
+        {
+            public const string AuthenticationScheme = "bearer";
+            public const string AuthenticationType = "jwtAuthType";
+        }
+
+        public static class LocalStorage
+        {
+            public const string JwtToken = "JWT Token";
+        }
     }
 }

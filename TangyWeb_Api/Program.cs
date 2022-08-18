@@ -1,28 +1,99 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using System.Text;
 using System.Text.Json.Serialization;
 using Tangy_Business.Repository;
 using Tangy_Business.Repository.IRepository;
+using Tangy_DataAccess;
 using Tangy_DataAccess.Data;
+using TangyWeb_Api.Helper;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
+// core infrastructure
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddControllers().AddJsonOptions(x =>
                 x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
-builder.Services.AddSwaggerGen();
 
-builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-builder.Services.AddScoped<IProductRepository, ProductRepository>();
-builder.Services.AddScoped<IOrderRepository, OrderRepository>();
-builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "TangWeb_Api", Version = "v1" });
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Description = "Please Bearer and then token in the field",
+        Name = "Authorization",
+        Type = SecuritySchemeType.ApiKey
+    });
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement {
+                   {
+                     new OpenApiSecurityScheme
+                     {
+                       Reference = new OpenApiReference
+                       {
+                         Type = ReferenceType.SecurityScheme,
+                         Id = "Bearer"
+                       }
+                      },
+                      new string[] { }
+                    }
+                });
+});
+
+
 builder.Services.AddCors(o => o.AddPolicy("Tangy", builderCors =>
 {
     builderCors.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
 }));
+
+var apiSettingsSection = builder.Configuration.GetSection("APISettings");
+builder.Services.Configure<APISettings>(apiSettingsSection);
+var apisettings = apiSettingsSection.Get<APISettings>();
+var key = Encoding.ASCII.GetBytes(apisettings.SecretKey);
+
+builder.Services.AddAuthentication(opt =>
+{
+    opt.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    opt.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    opt.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(x =>
+{
+    x.RequireHttpsMetadata = false;
+    x.SaveToken = true;
+    x.TokenValidationParameters = new()
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(key),
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidAudience = apisettings.ValidAudience,
+        ValidIssuer = apisettings.ValidIssuer,
+        ClockSkew = TimeSpan.Zero
+    };
+
+});
+
+// db and security
+builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>().AddDefaultTokenProviders()
+    .AddEntityFrameworkStores<ApplicationDbContext>();
+
+// external libs
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+
+// app services
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+
+
+
 
 var app = builder.Build();
 
@@ -35,8 +106,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("Tangy");
-app.UseAuthorization();
-
 app.MapControllers();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.Run();
