@@ -28,8 +28,10 @@ namespace Tangy_Business.Repository
 
         public async Task<OrderDto> Create(OrderDto objDto)
         {
-
             var order = _mapper.Map<Order>(objDto);
+
+            try
+            {
 
             await _db.OrderHeaders.AddAsync(order.OrderHeader);
             await _db.SaveChangesAsync();
@@ -40,6 +42,12 @@ namespace Tangy_Business.Repository
             }
             _db.OrderDetails.AddRange(order.OrderDetails);
             await _db.SaveChangesAsync();
+
+            }
+            catch( Exception ex)
+            {
+
+            }
             return new OrderDto()
             {
                 OrderHeader = _mapper.Map<OrderHeader, OrderHeaderDto>(order.OrderHeader),

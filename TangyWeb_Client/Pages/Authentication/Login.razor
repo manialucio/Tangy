@@ -1,0 +1,49 @@
+﻿@page "/login"
+@if (IsProcessing)
+{
+
+
+    <div style="position:fixed;top:50%;left:50%;margin-top:-50px;margin-left:-100px;">
+        <img src="images/ajax-loader.gif" />
+    </div>
+}
+else
+{
+    <EditForm Model="SignInRequest" OnValidSubmit="LoginUser">
+        <DataAnnotationsValidator/>
+        <div class="py-4">
+            <div class=" row form-group ">
+                <div class="col-6 offset-3 ">
+                    <div class="card border">
+                        <div class="card-body px-lg-5 pt-4">
+                            <h3 class="col-12 text-success text-center py-2">
+                                <strong>Sign In</strong>
+                            </h3>
+                            @if (ShowLoginError)
+                            {
+                                <div>
+                                    <p class="text-danger text-center">Authentication failed</p>
+                                </div>
+                            }
+                            <div class="py-2">
+                                <InputText @bind-Value="SignInRequest.Name"  input id="email" placeholder="Email..." class="form-control mb-2" />
+                                <ValidationMessage For="(()=>SignInRequest.Name)"></ValidationMessage>
+                            </div>
+                            <div class="py-2">
+                                 <InputText @bind-Value="SignInRequest.Password" type="password" placeholder="Password..." id="password" class="form-control mb-2" />
+                                <ValidationMessage For="(()=>SignInRequest.Password)"></ValidationMessage>
+                            </div>
+                            <div class="py-2">
+                                <button type="submit" class="btn btn-success btn-block"><i class="bi bi-person-bounding-box"></i> Sign in</button>
+                                <a href="/register" class="btn btn-primary text-white m-2"><i class="bi bi-person-plus-fill"></i> Register as a new user</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </EditForm>
+}
+
+
+

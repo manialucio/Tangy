@@ -27,7 +27,7 @@ namespace Tangy_Common
 
         public static class Auth
         {
-            public const string AuthenticationScheme = "bearer";
+            public const string AuthenticationScheme = "Bearer";
             public const string AuthenticationType = "jwtAuthType";
         }
 

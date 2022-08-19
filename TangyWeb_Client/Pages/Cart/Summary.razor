@@ -1,10 +1,12 @@
 ﻿@page "/summary"
+@using Microsoft.AspNetCore.Authorization
 @using Tangy_Common
 @inject ILocalStorageService _localStorage
 @inject ICartService _cartService
 @inject IJSRuntime _jsRuntime
-
-
+@inject IOrderService _orderService
+@inject NavigationManager _navigationManager;
+@attribute [Authorize]
 @if (IsProcessing)
 {
     <div style="position:fixed;top:50%;left:50%;margin-top:-50px;margin-left:-100px;">
@@ -46,58 +48,58 @@ else
                         </div>
                     </div>
                 }
-                    <div class="row" style="text-align:right">
-                        <div class="col-12 px-3">
-                            <h3> Order Total : <span class="text-secondary">@Order.OrderHeader.OrderTotal</span> </h3>
-                        </div>
+                <div class="row" style="text-align:right">
+                    <div class="col-12 px-3">
+                        <h3> Order Total : <span class="text-secondary">@Order.OrderHeader.OrderTotal</span> </h3>
                     </div>
+                </div>
 
             </div>
 
             <div class="col-12 col-lg-5 p-4 ml-4 ml-md-0 mt-4 mt-md-0 border">
                 <EditForm Model="Order.OrderHeader" OnValidSubmit="HandleCheckOut" method="post">
-                    <DataAnnotationsValidator/>
+                    <DataAnnotationsValidator />
                     <div class="row px-2 text-success border-bottom"><div class="col-7 py-1"><p style="font-size:x-large;margin:0px;">Enter Details</p></div></div>
 
                     <div class="form-group pt-2">
                         <label class="text-warning">Name</label>
                         <InputText @bind-Value="@Order.OrderHeader.Name" type="text" class="form-control" />
-                        <ValidationMessage For="()=>Order.OrderHeader.Name" ></ValidationMessage>
+                        <ValidationMessage For="()=>Order.OrderHeader.Name"></ValidationMessage>
                     </div>
                     <div class="form-group pt-2">
                         <label class="text-warning">Phone</label>
                         <InputText @bind-Value="@Order.OrderHeader.PhoneNumber" type="text" class="form-control" />
-                        <ValidationMessage For="()=>Order.OrderHeader.PhoneNumber" ></ValidationMessage>
+                        <ValidationMessage For="()=>Order.OrderHeader.PhoneNumber"></ValidationMessage>
                     </div>
                     <div class="form-group pt-2">
                         <label class="text-warning">Email</label>
-                        <InputText @bind-Value="@Order.OrderHeader.EMail"  type="text" class="form-control" />
-                        <ValidationMessage For="()=>Order.OrderHeader.EMail" ></ValidationMessage>
+                        <InputText @bind-Value="@Order.OrderHeader.EMail" type="text" class="form-control" />
+                        <ValidationMessage For="()=>Order.OrderHeader.EMail"></ValidationMessage>
                     </div>
                     <div class="form-group pt-2">
                         <label class="text-warning">Street Address</label>
-                        <InputText @bind-Value="@Order.OrderHeader.StreetAddress"  type="text" class="form-control" />
-                        <ValidationMessage For="()=>Order.OrderHeader.StreetAddress" ></ValidationMessage>
+                        <InputText @bind-Value="@Order.OrderHeader.StreetAddress" type="text" class="form-control" />
+                        <ValidationMessage For="()=>Order.OrderHeader.StreetAddress"></ValidationMessage>
                     </div>
                     <div class="form-group pt-2">
                         <label class="text-warning">City</label>
                         <InputText @bind-Value="@Order.OrderHeader.City" type="text" class="form-control" />
-                        <ValidationMessage For="()=>Order.OrderHeader.City" ></ValidationMessage>
+                        <ValidationMessage For="()=>Order.OrderHeader.City"></ValidationMessage>
                     </div>
                     <div class="form-group pt-2">
                         <label class="text-warning">State</label>
-                       <InputText @bind-Value="@Order.OrderHeader.State" type="text" class="form-control" />
-                        <ValidationMessage For="()=>Order.OrderHeader.State" ></ValidationMessage>
+                        <InputText @bind-Value="@Order.OrderHeader.State" type="text" class="form-control" />
+                        <ValidationMessage For="()=>Order.OrderHeader.State"></ValidationMessage>
                     </div>
                     <div class="form-group pt-2">
                         <label class="text-warning">Postal Code</label>
                         <InputText @bind-Value="@Order.OrderHeader.PostalCode" type="text" class="form-control" />
-                        <ValidationMessage For="()=>Order.OrderHeader.PostalCode" ></ValidationMessage>
+                        <ValidationMessage For="()=>Order.OrderHeader.PostalCode"></ValidationMessage>
                     </div>
 
 
                     <div class="form-group pt-2">
-                        <button type="submit"  value="chkOut" class="btn btn-success form-control">Checkout Now</button>
+                        <button type="submit" value="chkOut" class="btn btn-success form-control">Checkout Now</button>
                     </div>
                 </EditForm>
             </div>
@@ -109,6 +111,8 @@ else
 
 
 @code {
+
+
     public bool IsProcessing { get; set; } = false;
     private List<ShoppingCart> ShoppingCartItems { get; set; } = new();
     private List<ProductDto> Products { get; set; } = new();
@@ -118,7 +122,24 @@ else
 
     private async Task HandleCheckOut()
     {
-        await _jsRuntime.ToasterSucces("fatto");
+        var payment = new StripePaymentDto()
+            {
+                Order = Order
+            };
+        var result = await _orderService.Create(payment);
+        if (result.OrderHeader.Id == 0)
+        {
+            await _jsRuntime.ToasterFail("errore");
+
+        }
+        else
+        {
+            await _jsRuntime.ToasterSucces("fatto");
+            await _cartService.ClearCart();
+            StateHasChanged();
+           _navigationManager.NavigateTo("/"  );
+        }
+
     }
 
     protected override async Task OnInitializedAsync()
@@ -131,11 +152,15 @@ else
                 OrderHeader = new()
                 {
                     OrderTotal = 0,
+                    OrderDate = DateTime.Now,
                     Status = SD.OrderStatus.Pending,
                 },
                 OrderDetails = new List<OrderDetailDto>()
 
             };
+
+
+
         foreach (var cartItem in ShoppingCartItems)
         {
             var orderDetail = new OrderDetailDto()
@@ -154,7 +179,16 @@ else
             Order.OrderHeader.OrderTotal += orderDetail.Count * orderDetail.Price;
         }
 
+        var user = await _localStorage.GetItemAsync<UserDto>(SD.LocalStorage.UserDetails);
+        if (user != null)
+        {
+            Order.OrderHeader.UserId = user.Id;
+            Order.OrderHeader.Name = user.Name;
+            Order.OrderHeader.EMail = user.Email;
+            Order.OrderHeader.PhoneNumber = user.PhoneNumber;
+        }
         IsProcessing = false;
-    }
+
 
     }
+}

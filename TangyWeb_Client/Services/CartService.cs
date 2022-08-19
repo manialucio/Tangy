@@ -106,5 +106,15 @@ namespace TangyWeb_Client.Services
             }
             return cart;
         }
+
+        public async Task ClearCart()
+        {
+            if (await _localStorageService.ContainKeyAsync(SD.ShoppingCart))
+            {
+             await _localStorageService.SetItemAsync<List<ShoppingCart>>(SD.ShoppingCart, new List<ShoppingCart>());
+             OnChange.Invoke();
+
+            }
+        }
     }
 }

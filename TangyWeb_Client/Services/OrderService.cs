@@ -33,7 +33,7 @@ namespace TangyWeb_Client.Services
             }
         }
 
-        public async Task<IEnumerable<OrderDto>> GetAll(string? userId = null )
+        public async Task<IEnumerable<OrderDto>> GetAll(string? userId = null)
         {
 
             var response = await _httpClient.GetAsync($"/api/order/{userId}");
@@ -45,6 +45,23 @@ namespace TangyWeb_Client.Services
             }
             return new List<OrderDto>();
         }
+
+        public   async Task<OrderDto> Create(StripePaymentDto paymentDto)
+        {
+            var tempContent = JsonConvert.SerializeObject(paymentDto);
+            var bodyContent = new StringContent(tempContent, System.Text.Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync("api/Order/Create", bodyContent);
+            if (response.IsSuccessStatusCode)
+            {
+                var resultString =  await response.Content.ReadAsStringAsync();
+                var result = JsonConvert.DeserializeObject<OrderDto>(resultString);
+                return result;
+            }
+            else
+            {
+                return new OrderDto();
+            }
  
+        }
     }
 }

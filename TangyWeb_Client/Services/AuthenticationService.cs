@@ -1,4 +1,5 @@
 ﻿using Blazored.LocalStorage;
+using Microsoft.AspNetCore.Components.Authorization;
 using Newtonsoft.Json;
 using System.Net.Http.Headers;
 using Tangy_Common;
@@ -11,13 +12,13 @@ namespace TangyWeb_Client.Services
     {
         private readonly ILocalStorageService _localStorageService;
         private readonly HttpClient _httpClient;
-        private readonly IAuthenticationService _authenticationService;
+        private readonly AuthenticationStateProvider _authStateProvider;
 
-        public AuthenticationService(ILocalStorageService localStorageService, HttpClient httpClient, IAuthenticationService authenticationService)
+        public AuthenticationService(ILocalStorageService localStorageService, HttpClient httpClient, AuthenticationStateProvider authStateProvider)
         {
             _localStorageService = localStorageService ?? throw new ArgumentNullException(nameof(localStorageService));
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-            _authenticationService = authenticationService ?? throw new ArgumentNullException(nameof(authenticationService));
+            _authStateProvider = authStateProvider;
         }
 
         public async Task<SignInResponseDto> Login(SignInRequestDto signInRequest)
@@ -28,11 +29,13 @@ namespace TangyWeb_Client.Services
 
             string stringResponse = await response.Content.ReadAsStringAsync();
             var signInResponse = JsonConvert.DeserializeObject<SignInResponseDto>(stringResponse);
-            if (!response.IsSuccessStatusCode)
+            if (response.IsSuccessStatusCode)
             {
                 await _localStorageService.SetItemAsync(SD.LocalStorage.JwtToken, signInResponse.Token);
                 await _localStorageService.SetItemAsync(SD.LocalStorage.UserDetails, signInResponse.User);
                 _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(SD.Auth.AuthenticationScheme, signInResponse.Token);
+                ((AuthStateProvider)_authStateProvider).NotifyUserHasLoggedIn();
+
                 return new SignInResponseDto() { IsAuthSuccessful = true };
             }
             else
@@ -47,6 +50,8 @@ namespace TangyWeb_Client.Services
             await _localStorageService.RemoveItemAsync(SD.LocalStorage.JwtToken);
             await _localStorageService.RemoveItemAsync(SD.LocalStorage.UserDetails);
             _httpClient.DefaultRequestHeaders.Authorization = null;
+            ((AuthStateProvider)_authStateProvider).NotifyUserHasLoggedOut();
+
         }
 
         public async Task<SignUpResponseDto> RegisterUser(SignUpRequestDto signUpRequest)

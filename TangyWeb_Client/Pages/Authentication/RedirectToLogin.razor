@@ -1,0 +1,24 @@
+﻿@inject IAuthenticationService authenticationService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager navigationManager
+
+
+@code {
+
+    [CascadingParameter]
+    public Task<AuthenticationState> _authState { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await _authState;
+        if (state?.User?.Identity is null || !state.User.Identity.IsAuthenticated)
+        {
+            string returnUrl = navigationManager.ToBaseRelativePath(navigationManager.Uri);
+            returnUrl = string.IsNullOrEmpty(returnUrl) ? string.Empty : $"?returnUrl={returnUrl}";
+            navigationManager.NavigateTo("/login" + returnUrl);
+
+        }
+ 
+    }
+
+}

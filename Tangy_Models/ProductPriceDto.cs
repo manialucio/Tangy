@@ -13,7 +13,7 @@ namespace Tangy_Models
         [Required]
         public int ProductId { get; set; }
 
-        public ProductDto Product { get; set; }
+        public ProductDto? Product { get; set; }
         
         [Required]
         public string Size { get; set; }

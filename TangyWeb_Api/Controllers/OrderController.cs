@@ -49,15 +49,18 @@ namespace TangyWeb_Api.Controllers
 
         // POST api/<OrderController>
         [HttpPost]
-        public async Task<IActionResult> Post([FromBody] OrderDto order)
+        [ActionName("Create")]
+        public async Task<IActionResult> Create([FromBody] StripePaymentDto payment)
         {
-            if (order == null ||  order.OrderHeader == null || order.OrderHeader.Id != 0)
+            if( payment == null || payment.Order == null || payment.Order.OrderHeader == null || payment.Order.OrderHeader.Id != 0)
             {
                 return BadRequest(
-                        new ErrorModelDto()
-                        { Message = "Invalid product ", StatusCode = StatusCodes.Status400BadRequest }
-                        );
+                           new ErrorModelDto()
+                           { Message = "Invalid payment ", StatusCode = StatusCodes.Status400BadRequest }
+                           );
+
             }
+            var order = payment.Order;
             var productUpdated = await _orderRepository.Create(order);
             if (productUpdated == null)
             {
@@ -68,11 +71,7 @@ namespace TangyWeb_Api.Controllers
                         StatusCode = StatusCodes.Status409Conflict
                     });
             }
-            return Ok(new SuccessModelDto()
-            {
-                Message = " Product created",
-                Data = productUpdated
-            });
+            return Ok( productUpdated);
         }
 
         // PUT api/<OrderController>/5
@@ -98,12 +97,10 @@ namespace TangyWeb_Api.Controllers
                     });
             }
             order.OrderHeader = orderHeaderUpdated;
-            return Ok(new SuccessModelDto()
-            {
-                Message = " Product created",
-                Data = order
-            });
-        }
+            return Ok(order);
+   
+    
+    }
 
         // DELETE api/<OrderController>/5
         [HttpDelete("{id}")]
