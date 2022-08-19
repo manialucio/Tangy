@@ -34,6 +34,7 @@ namespace Tangy_Common
         public static class LocalStorage
         {
             public const string JwtToken = "JWT Token";
+            public const string UserDetails = "UserDetails";
         }
     }
 }
